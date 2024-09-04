@@ -6,6 +6,7 @@ import pickle
 import utils
 import time
 
+
 class PopMusicTransformer(object):
     ########################################
     # initialize
@@ -42,7 +43,10 @@ class PopMusicTransformer(object):
         # placeholders
         self.x = tf.compat.v1.placeholder(tf.int32, shape=[self.batch_size, None])
         self.y = tf.compat.v1.placeholder(tf.int32, shape=[self.batch_size, None])
-        self.mems_i = [tf.compat.v1.placeholder(tf.float32, [self.mem_len, self.batch_size, self.d_model]) for _ in range(self.n_layer)]
+        self.mems_i = [
+            tf.compat.v1.placeholder(tf.float32, [self.mem_len, self.batch_size, self.d_model])
+            for _ in range(self.n_layer)
+        ]
         # model
         self.global_step = tf.compat.v1.train.get_or_create_global_step()
         initializer = tf.compat.v1.initializers.random_normal(stddev=0.02, seed=None)
@@ -76,19 +80,20 @@ class PopMusicTransformer(object):
                 target_perms=None,
                 head_target=None,
                 untie_r=False,
-                proj_same_dim=True)
+                proj_same_dim=True,
+            )
         self.avg_loss = tf.reduce_mean(loss)
         # vars
         all_vars = tf.compat.v1.trainable_variables()
         grads = tf.gradients(self.avg_loss, all_vars)
         grads_and_vars = list(zip(grads, all_vars))
-        all_trainable_vars = tf.reduce_sum([tf.reduce_prod(v.shape) for v in tf.compat.v1.trainable_variables()])
+        all_trainable_vars = tf.reduce_sum(
+            [tf.reduce_prod(v.shape) for v in tf.compat.v1.trainable_variables()]
+        )
         # optimizer
         decay_lr = tf.compat.v1.train.cosine_decay(
-            self.learning_rate,
-            global_step=self.global_step,
-            decay_steps=400000,
-            alpha=0.004)
+            self.learning_rate, global_step=self.global_step, decay_steps=400000, alpha=0.004
+        )
         optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=decay_lr)
         self.train_op = optimizer.apply_gradients(grads_and_vars, self.global_step)
         # saver
@@ -161,7 +166,10 @@ class PopMusicTransformer(object):
                     ws.append(np.random.choice(tempo_values))
                 words.append(ws)
         # initialize mem
-        batch_m = [np.zeros((self.mem_len, self.batch_size, self.d_model), dtype=np.float32) for _ in range(self.n_layer)]
+        batch_m = [
+            np.zeros((self.mem_len, self.batch_size, self.d_model), dtype=np.float32)
+            for _ in range(self.n_layer)
+        ]
         # generate
         original_length = len(words[0])
         initial_flag = 1
@@ -186,10 +194,7 @@ class PopMusicTransformer(object):
             _logits, _new_mem = self.sess.run([self.logits, self.new_mem], feed_dict=feed_dict)
             # sampling
             _logit = _logits[-1, 0]
-            word = self.temperature_sampling(
-                logits=_logit, 
-                temperature=temperature,
-                topk=topk)
+            word = self.temperature_sampling(logits=_logit, temperature=temperature, topk=topk)
             words[0].append(word)
             # if bar event (only work for batch_size=1)
             if word == self.event2word['Bar_None']:
@@ -202,13 +207,15 @@ class PopMusicTransformer(object):
                 words=words[0][original_length:],
                 word2event=self.word2event,
                 output_path=output_path,
-                prompt_path=prompt)
+                prompt_path=prompt,
+            )
         else:
             utils.write_midi(
                 words=words[0],
                 word2event=self.word2event,
                 output_path=output_path,
-                prompt_path=None)
+                prompt_path=None,
+            )
 
     ########################################
     # prepare training data
@@ -242,14 +249,14 @@ class PopMusicTransformer(object):
         segments = []
         for words in all_words:
             pairs = []
-            for i in range(0, len(words)-self.x_len-1, self.x_len):
-                x = words[i:i+self.x_len]
-                y = words[i+1:i+self.x_len+1]
+            for i in range(0, len(words) - self.x_len - 1, self.x_len):
+                x = words[i : i + self.x_len]
+                y = words[i + 1 : i + self.x_len + 1]
                 pairs.append([x, y])
             pairs = np.array(pairs)
             # abandon the last
-            for i in np.arange(0, len(pairs)-self.group_size, self.group_size*2):
-                data = pairs[i:i+self.group_size]
+            for i in np.arange(0, len(pairs) - self.group_size, self.group_size * 2):
+                data = pairs[i : i + self.group_size]
                 if len(data) == self.group_size:
                     segments.append(data)
         segments = np.array(segments)
@@ -268,8 +275,11 @@ class PopMusicTransformer(object):
         for e in range(200):
             total_loss = []
             for i in range(num_batches):
-                segments = training_data[self.batch_size*i:self.batch_size*(i+1)]
-                batch_m = [np.zeros((self.mem_len, self.batch_size, self.d_model), dtype=np.float32) for _ in range(self.n_layer)]
+                segments = training_data[self.batch_size * i : self.batch_size * (i + 1)]
+                batch_m = [
+                    np.zeros((self.mem_len, self.batch_size, self.d_model), dtype=np.float32)
+                    for _ in range(self.n_layer)
+                ]
                 for j in range(self.group_size):
                     batch_x = segments[:, j, 0, :]
                     batch_y = segments[:, j, 1, :]
@@ -278,11 +288,21 @@ class PopMusicTransformer(object):
                     for m, m_np in zip(self.mems_i, batch_m):
                         feed_dict[m] = m_np
                     # run
-                    _, gs_, loss_, new_mem_ = self.sess.run([self.train_op, self.global_step, self.avg_loss, self.new_mem], feed_dict=feed_dict)
+                    _, gs_, loss_, new_mem_ = self.sess.run(
+                        [self.train_op, self.global_step, self.avg_loss, self.new_mem],
+                        feed_dict=feed_dict,
+                    )
                     batch_m = new_mem_
                     total_loss.append(loss_)
-                    print('>>> Epoch: {}, Step: {}, Loss: {:.5f}, Time: {:.2f}'.format(e, gs_, loss_, time.time()-st))
-            self.saver.save(self.sess, '{}/model-{:03d}-{:.3f}'.format(output_checkpoint_folder, e, np.mean(total_loss)))
+                    print(
+                        '>>> Epoch: {}, Step: {}, Loss: {:.5f}, Time: {:.2f}'.format(
+                            e, gs_, loss_, time.time() - st
+                        )
+                    )
+            self.saver.save(
+                self.sess,
+                '{}/model-{:03d}-{:.3f}'.format(output_checkpoint_folder, e, np.mean(total_loss)),
+            )
             # stop
             if np.mean(total_loss) <= 0.1:
                 break
