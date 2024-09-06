@@ -9,7 +9,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def main():
     # declare model
-    model = PopMusicTransformer(checkpoint='REMI-tempo-chord-checkpoint', is_training=False)
+    model = PopMusicTransformer(checkpoint='./oss_remi/REMI-tempo-chord-checkpoint', is_training=False)
 
     # generate from scratch
     model.generate(
@@ -21,13 +21,13 @@ def main():
     )
 
     # generate continuation
-    model.generate(
-        n_target_bar=16,
-        temperature=1.2,
-        topk=5,
-        output_path='./result/continuation_1.midi',
-        prompt='./data/evaluation/000.midi',
-    )
+    # model.generate(
+    #     n_target_bar=16,
+    #     temperature=1.2,
+    #     topk=5,
+    #     output_path='./result/continuation_1.midi',
+    #     prompt='./data/evaluation/000.midi',
+    # )
 
     # close model
     model.close()

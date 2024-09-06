@@ -5,13 +5,15 @@ import modules
 import pickle
 import utils
 import time
-
+from logger_config import get_logger
 
 class PopMusicTransformer(object):
     ########################################
     # initialize
     ########################################
     def __init__(self, checkpoint, is_training=False):
+        self.logger = get_logger()
+        self.logger.info(f"Initializing PopMusicTransformer with checkpoint: {checkpoint}")
         # load dictionary
         self.dictionary_path = '{}/dictionary.pkl'.format(checkpoint)
         self.event2word, self.word2event = pickle.load(open(self.dictionary_path, 'rb'))
@@ -221,6 +223,7 @@ class PopMusicTransformer(object):
     # prepare training data
     ########################################
     def prepare_data(self, midi_paths):
+        self.logger.info(f"Preparing data from {len(midi_paths)} MIDI files")
         # extract events
         all_events = []
         for path in midi_paths:
@@ -260,17 +263,21 @@ class PopMusicTransformer(object):
                 if len(data) == self.group_size:
                     segments.append(data)
         segments = np.array(segments)
+        self.logger.info(f"Data preparation completed. Total segments: {len(segments)}")
         return segments
 
     ########################################
     # finetune
     ########################################
     def finetune(self, training_data, output_checkpoint_folder):
+        self.logger.info("Starting fine-tuning process")
         # shuffle
         index = np.arange(len(training_data))
         np.random.shuffle(index)
         training_data = training_data[index]
         num_batches = len(training_data) // self.batch_size
+        self.logger.info(f"Total batches: {num_batches}")
+
         st = time.time()
         for e in range(200):
             total_loss = []
@@ -294,18 +301,23 @@ class PopMusicTransformer(object):
                     )
                     batch_m = new_mem_
                     total_loss.append(loss_)
-                    print(
-                        '>>> Epoch: {}, Step: {}, Loss: {:.5f}, Time: {:.2f}'.format(
-                            e, gs_, loss_, time.time() - st
-                        )
+                    self.logger.info(
+                        f"Epoch: {e}, Step: {gs_}, Loss: {loss_:.5f}, Time: {time.time() - st:.2f}"
                     )
+            avg_loss = np.mean(total_loss)
+            self.logger.info(f"Epoch {e} completed. Average loss: {avg_loss:.5f}")
             self.saver.save(
                 self.sess,
-                '{}/model-{:03d}-{:.3f}'.format(output_checkpoint_folder, e, np.mean(total_loss)),
+                '{}/model-{:03d}-{:.3f}'.format(output_checkpoint_folder, e, avg_loss),
             )
+            # 额外每10个epoch保存一个永久检查点
+            if e % 10 == 0:
+                self.saver.save(self.sess, f'{output_checkpoint_folder}/permanent-model-{e:03d}-{avg_loss:.3f}')
             # stop
             if np.mean(total_loss) <= 0.1:
+                self.logger.info(f"Early stopping at epoch {e} with loss {avg_loss:.5f}")
                 break
+        self.logger.info("Fine-tuning process completed")
 
     ########################################
     # close

@@ -16,4 +16,6 @@ result
 *.zip
 *.logicx
 *.midi
+*.log
+REMI-finetune
 
