@@ -5,7 +5,7 @@ from logger_config import get_logger,  setup_logging
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def main():
-    output_checkpoint_folder = 'REMI-finetune' # your decision
+    output_checkpoint_folder = 'REMI-chord-finetune' # your decision
     if not os.path.exists(output_checkpoint_folder):
         os.mkdir(output_checkpoint_folder)
     # 设置日志
@@ -15,7 +15,7 @@ def main():
     # 声明模型
     logger.info("Initializing PopMusicTransformer model")
     model = PopMusicTransformer(
-        checkpoint='./oss_remi/REMI-tempo-checkpoint',
+        checkpoint='./oss_remi/REMI-tempo-chord-checkpoint',
         is_training=True)
     logger.info("Model initialized successfully")
 

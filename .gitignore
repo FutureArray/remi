@@ -18,4 +18,11 @@ result
 *.midi
 *.log
 REMI-finetune
+checkpoint
+dictionary.pkl
+*log
+*.data-00000-of-00001
+*.index
+*.meta
+
 

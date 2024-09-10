@@ -9,14 +9,14 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def main():
     # declare model
-    model = PopMusicTransformer(checkpoint='./oss_remi/REMI-tempo-chord-checkpoint', is_training=False)
+    model = PopMusicTransformer(checkpoint='/mnt/workspace/tangxinyu/fa_music/remi/REMI-finetune', is_training=False)
 
     # generate from scratch
     model.generate(
         n_target_bar=16,
         temperature=1.2,
         topk=5,
-        output_path='./result/from_scratch_1.midi',
+        output_path='./result/from_scratch_finetune_174.midi',
         prompt=None,
     )
 
